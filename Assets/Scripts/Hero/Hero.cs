@@ -37,6 +37,8 @@ public abstract class Hero : Controllable
 	private HingeJoint2D walkMotor = null;
 	[SerializeField]
 	private Collider2D footCollider = null;
+	[SerializeField]
+	private Collider2D groundTrigger = null;
 
 	private HeroInteractor heroInterac;
 	private float motorMaxAngularSpeed = 0f;
@@ -45,13 +47,13 @@ public abstract class Hero : Controllable
 	private double jumpForce;
 	private Animator animator;
 	private bool isClimbing = false;
-	public GameObject ladder = null;
 	private float gravityOriginal;
 	private bool Carrying = false;
 	private bool Crouched = false;
 	private bool CarryingByAction = false;
 	private GameObject CarriedObject;
     private Collider2D[] colliders;
+
 	
 	private bool m_onAir = false;
 
@@ -83,11 +85,8 @@ public abstract class Hero : Controllable
 
 	public bool isGrounded ()
 	{
-		//TODO better method to check if grounded
-		//old way:
-		//bool grounded = Physics2D.OverlapCircle (transform.position, 0.2f, whatIsGround.value | heroPlatformMask.value | mapInteractiveObjectsMask.value);
-		//new way:
-		bool grounded = footCollider.IsTouchingLayers (whatIsGround.value | heroPlatformMask.value | mapInteractiveObjectsMask.value);
+		bool grounded = footCollider.IsTouchingLayers (whatIsGround.value | heroPlatformMask.value | mapInteractiveObjectsMask.value)
+			|| groundTrigger.IsTouchingLayers(whatIsGround.value | heroPlatformMask.value | mapInteractiveObjectsMask.value);
 		return grounded;
 	}
 
@@ -131,7 +130,6 @@ public abstract class Hero : Controllable
 				if (speed != 0.0f) {
 					int d = speed>0?1:-1;
 					isClimbing = false;
-					//ladder = null;
 					animator.SetBool ("jumpOnAir", true);
 				}
 			}
@@ -317,15 +315,16 @@ public abstract class Hero : Controllable
 	{
 		if (!Carrying) {
 			if (!isClimbing) {
-				if (heroInterac.actionableObject != null) {
+				if (heroInterac.carriableObject != null) {
+					CarryObject ();
+					CarryingByAction = true;
+				}
+				else if (heroInterac.actionableObject != null) {
 					IHeroActionable iHeroActionable = heroInterac.actionableObject.GetComponent<IHeroActionable> ();
 					if (iHeroActionable != null) {
 						iHeroActionable.OnHeroActivate ();
 					}
-				} else if (heroInterac.carriableObject != null) {
-					CarryObject ();
-					CarryingByAction = true;
-				}
+				} 
 			}
 		}
 		else{
